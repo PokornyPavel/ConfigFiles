@@ -18,7 +18,9 @@ set showcmd
 "   " mapping of <C-L> below)
 set hlsearch
 
-" Display line numbers on the left
-set number
+" Turn hybrid line numbers on
+set number relativenumber
+set nu rnu
+
 syntax enable           " enable syntax processing
 colorscheme industry
