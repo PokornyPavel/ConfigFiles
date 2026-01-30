@@ -57,7 +57,6 @@ if [ -n "$force_color_prompt" ]; then
 fi
 
 if [ "$color_prompt" = yes ]; then
-#    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
 	PS1='${debian_chroot:+($debian_chroot)}[\[\e[31m\]\u\[\e[m\]\[\e[33m\]@\[\e[m\]\[\e[32m\]\h\[\e[m\]:\[\e[33m\]\W\[\e[m\]]'
 else
 	PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
@@ -67,7 +66,7 @@ unset color_prompt force_color_prompt
 # If this is an xterm set the title to user@host:dir
 case "$TERM" in
 xterm*|rxvt*)
-    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+	PS1='${debian_chroot:+($debian_chroot)}[\[\e[31m\]\u\[\e[m\]\[\e[33m\]@\[\e[m\]\[\e[32m\]\h\[\e[m\]:\[\e[33m\]\W\[\e[m\]]'
     ;;
 *)
     ;;
@@ -113,7 +112,3 @@ if ! shopt -oq posix; then
     . /etc/bash_completion
   fi
 fi
-echo "Prace s certifikaty"
-echo "./pripojcert - pripoj zasifrovany adresar s certifikaty"
-echo "./odpojcert - odpoj odsifrovany adresar - po ukonceni prace s certifikaty"
-. "/home/vulcan/.acme.sh/acme.sh.env"
