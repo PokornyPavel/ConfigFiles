@@ -54,7 +54,7 @@ SCRIPT_DATE="2026-08-17"
 
 SCRIPT_DESCRIPTION="Initial configuration of a FERAMAT Debian PLC."
 
-REPO_RAW="https://raw.githubusercontent.com/PokornyPavel/ConfigFiles/main"
+REPO_RAW="https://raw.githubusercontent.com/PokornyPavel/ConfigFiles/refs/heads/main"
 
 
 # =============================================================================
