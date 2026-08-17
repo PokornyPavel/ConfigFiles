@@ -11,7 +11,7 @@
 #   Initial setup of a new FERAMAT PLC running Debian.
 #
 # Current version:
-#   1.3.0
+#   1.3.1
 #
 # Version history:
 #
@@ -37,6 +37,13 @@
 #     - prompt reads PLC name dynamically from ~/.plc_name
 #     - added --help and --version
 #
+#   1.3.1
+#     - changed raw GitHub URL to /refs/heads/main
+#     - all downloaded files are first stored in temporary files
+#     - downloaded files are checked for non-zero size
+#     - existing configuration is replaced only after successful validation
+#     - added basic SSH public-key format validation
+#
 # Full version history:
 #   See CHANGELOG.md in the repository.
 #
@@ -49,12 +56,13 @@ set -euo pipefail
 # Script information
 # =============================================================================
 
-SCRIPT_VERSION="1.3.0"
+SCRIPT_VERSION="1.3.1"
 SCRIPT_DATE="2026-08-17"
 
 SCRIPT_DESCRIPTION="Initial configuration of a FERAMAT Debian PLC."
 
 REPO_RAW="https://raw.githubusercontent.com/PokornyPavel/ConfigFiles/refs/heads/main"
+PLC_CONFIG_RAW="$REPO_RAW/config_feramat_plc"
 
 
 # =============================================================================
@@ -89,6 +97,47 @@ show_help() {
     echo "Allowed characters:"
     echo
     echo "    A-Z a-z 0-9 _ - ."
+}
+
+
+download_file() {
+    local url="$1"
+    local destination="$2"
+    local description="$3"
+
+    local tmp_file
+
+    tmp_file="$(mktemp)"
+
+    echo "      Downloading $description..."
+
+    if ! curl -fsSL "$url" -o "$tmp_file"; then
+        echo
+        echo "ERROR: Failed to download:"
+        echo
+        echo "    $url"
+        echo
+        rm -f "$tmp_file"
+        exit 1
+    fi
+
+    if [ ! -s "$tmp_file" ]; then
+        echo
+        echo "ERROR: Downloaded file is empty:"
+        echo
+        echo "    $url"
+        echo
+        echo "Existing file was NOT modified:"
+        echo
+        echo "    $destination"
+        echo
+        rm -f "$tmp_file"
+        exit 1
+    fi
+
+    mv "$tmp_file" "$destination"
+
+    echo "      Installed: $destination"
 }
 
 
@@ -185,9 +234,10 @@ sudo DEBIAN_FRONTEND=noninteractive apt install -y \
 echo
 echo "[3/8] Installing Vim configuration..."
 
-curl -fsSL \
+download_file \
     "$REPO_RAW/.vimrc" \
-    -o "$HOME/.vimrc"
+    "$HOME/.vimrc" \
+    ".vimrc"
 
 
 # =============================================================================
@@ -197,9 +247,10 @@ curl -fsSL \
 echo
 echo "[4/8] Installing Bash configuration..."
 
-curl -fsSL \
-    "$REPO_RAW/.bash_aliases" \
-    -o "$HOME/.bash_aliases"
+download_file \
+    "$PLC_CONFIG_RAW/.bash_aliases" \
+    "$HOME/.bash_aliases" \
+    ".bash_aliases"
 
 
 # =============================================================================
@@ -247,9 +298,10 @@ fi
 echo
 echo "[6/8] Installing tmux configuration..."
 
-curl -fsSL \
+download_file \
     "$REPO_RAW/.tmux.conf" \
-    -o "$HOME/.tmux.conf"
+    "$HOME/.tmux.conf" \
+    ".tmux.conf"
 
 
 # =============================================================================
@@ -289,9 +341,26 @@ cleanup() {
 
 trap cleanup EXIT
 
-curl -fsSL \
-    "$REPO_RAW/pokorny.pub" \
-    -o "$TMP_KEY"
+
+if ! curl -fsSL \
+    "$PLC_CONFIG_RAW/pokorny.pub" \
+    -o "$TMP_KEY"; then
+
+    echo
+    echo "ERROR: Failed to download SSH public key:"
+    echo
+    echo "    $PLC_CONFIG_RAW/pokorny.pub"
+    echo
+    exit 1
+fi
+
+
+if [ ! -s "$TMP_KEY" ]; then
+    echo
+    echo "ERROR: Downloaded SSH public key is empty."
+    echo
+    exit 1
+fi
 
 
 # Basic public-key validation
@@ -299,6 +368,26 @@ curl -fsSL \
 if ! grep -qE '^(ssh-ed25519|ssh-rsa|ecdsa-sha2-)' "$TMP_KEY"; then
     echo
     echo "ERROR: Downloaded pokorny.pub does not look like a valid SSH public key."
+    echo
+    echo "File was downloaded from:"
+    echo
+    echo "    $REPO_RAW/pokorny.pub"
+    echo
+    exit 1
+fi
+
+
+# Public key must contain exactly one non-empty line.
+
+NONEMPTY_LINES="$(grep -cve '^[[:space:]]*$' "$TMP_KEY")"
+
+if [ "$NONEMPTY_LINES" -ne 1 ]; then
+    echo
+    echo "ERROR: pokorny.pub should contain exactly one SSH public key."
+    echo
+    echo "Non-empty lines found:"
+    echo
+    echo "    $NONEMPTY_LINES"
     echo
     exit 1
 fi
